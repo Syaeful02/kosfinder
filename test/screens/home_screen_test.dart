@@ -14,7 +14,7 @@ class MockListingRepository extends ListingRepository {
   MockListingRepository({required this.onFetchAll});
 
   @override
-  Future<List<Listing>> fetchAll() => onFetchAll();
+  Future<List<Listing>> fetchAll({String searchQuery = ''}) => onFetchAll();
 }
 
 void main() {

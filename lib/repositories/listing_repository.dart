@@ -21,11 +21,20 @@ class ListingRepository {
   }
 
   /// Mengambil seluruh data kos publik, diurutkan secara default berdasarkan `created_at DESC`.
-  Future<List<Listing>> fetchAll() async {
-    final response = await _supabaseClient
+  ///
+  /// Jika [searchQuery] diberikan (tidak kosong), query akan menyaring kos
+  /// berdasarkan nama atau alamat yang cocok (pencarian `ilike` case-insensitive).
+  Future<List<Listing>> fetchAll({String searchQuery = ''}) async {
+    var query = _supabaseClient
         .from('listings')
-        .select()
-        .order('created_at', ascending: false);
+        .select();
+
+    if (searchQuery.trim().isNotEmpty) {
+      final q = searchQuery.trim();
+      query = query.or('name.ilike.%$q%,address.ilike.%$q%');
+    }
+
+    final response = await query.order('created_at', ascending: false);
 
     return (response as List)
         .map((item) => Listing.fromJson(item as Map<String, dynamic>))

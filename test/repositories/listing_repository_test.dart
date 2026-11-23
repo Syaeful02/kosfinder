@@ -182,5 +182,56 @@ void main() {
         ),
       );
     });
+
+    test('fetchAll() with searchQuery should include or filter in the request URL', () async {
+      Uri? capturedUri;
+
+      final mockHttpClient = MockClient((request) async {
+        capturedUri = request.url;
+        return http.Response(
+          jsonEncode([sampleListingJson1]),
+          200,
+          request: request,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final client = SupabaseClient(supabaseUrl, supabaseKey, httpClient: mockHttpClient);
+      final repository = ListingRepository(client: client);
+
+      final result = await repository.fetchAll(searchQuery: 'Singaraja');
+
+      expect(result.length, 1);
+      expect(capturedUri, isNotNull);
+      // Verifikasi bahwa filter OR ilike dikirim sebagai parameter `or`
+      final orParam = capturedUri!.queryParameters['or'];
+      expect(orParam, isNotNull);
+      expect(orParam, contains('ilike'));
+      expect(orParam, contains('Singaraja'));
+    });
+
+    test('fetchAll() with empty searchQuery should not include or filter', () async {
+      Uri? capturedUri;
+
+      final mockHttpClient = MockClient((request) async {
+        capturedUri = request.url;
+        return http.Response(
+          jsonEncode([sampleListingJson1, sampleListingJson2]),
+          200,
+          request: request,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final client = SupabaseClient(supabaseUrl, supabaseKey, httpClient: mockHttpClient);
+      final repository = ListingRepository(client: client);
+
+      final result = await repository.fetchAll();
+
+      expect(result.length, 2);
+      expect(capturedUri, isNotNull);
+      // Tanpa searchQuery tidak ada parameter `or`
+      expect(capturedUri!.queryParameters.containsKey('or'), isFalse);
+    });
   });
 }
