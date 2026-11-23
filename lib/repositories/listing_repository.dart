@@ -99,6 +99,32 @@ class ListingRepository {
     return Listing.fromJson(response);
   }
 
+  /// Memperbarui data kos berdasarkan ID; otorisasi tetap ditegakkan oleh RLS.
+  Future<Listing> updateListing(Listing listing) async {
+    final response = await _supabaseClient
+        .from('listings')
+        .update({
+          'name': listing.name,
+          'price_per_month': listing.pricePerMonth,
+          'type': listing.type,
+          'address': listing.address,
+          'facilities': listing.facilities,
+          'whatsapp_number': Listing.sanitizeToLocalWhatsAppNumber(
+            listing.whatsappNumber,
+          ),
+        })
+        .eq('id', listing.id)
+        .select()
+        .single();
+
+    return Listing.fromJson(response);
+  }
+
+  /// Menghapus data kos berdasarkan ID; otorisasi tetap ditegakkan oleh RLS.
+  Future<void> deleteListing(Listing listing) async {
+    await _supabaseClient.from('listings').delete().eq('id', listing.id);
+  }
+
   String get _currentOwnerId {
     final user = _supabaseClient.auth.currentUser;
     if (user == null) {

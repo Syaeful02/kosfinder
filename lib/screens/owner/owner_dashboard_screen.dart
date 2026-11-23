@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kostfinder/providers/auth_provider.dart';
 import 'package:kostfinder/providers/owner_listing_provider.dart';
+import 'package:kostfinder/models/listing_model.dart';
 import 'package:kostfinder/screens/owner/listing_form_screen.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
@@ -28,10 +29,34 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
-  void _openListingForm() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const ListingFormScreen()));
+  void _openListingForm([Listing? listing]) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ListingFormScreen(listing: listing),
+      ),
+    );
+  }
+
+  Future<void> _confirmDelete(Listing listing) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Kos?'),
+        content: Text('Kos "${listing.name}" akan dihapus.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+    if (shouldDelete != true || !mounted) return;
+    await context.read<OwnerListingProvider>().deleteListing(listing);
   }
 
   @override
@@ -93,13 +118,41 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                         horizontal: 16,
                         vertical: 6,
                       ),
-                      child: ListTile(
-                        title: Text(listing.name),
-                        subtitle: Text(
-                          '${listing.formattedPrice} / bulan | ${listing.type}\n'
-                          '${listing.address}',
-                        ),
-                        isThreeLine: true,
+                      child: Column(
+                        children: [
+                          ListTile(
+                            title: Text(listing.name),
+                            subtitle: Text(
+                              '${listing.formattedPrice} / bulan | ${listing.type}\n'
+                              '${listing.address}',
+                            ),
+                            isThreeLine: true,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 8,
+                              bottom: 8,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton.icon(
+                                  key: Key('edit-listing-${listing.id}'),
+                                  onPressed: () => _openListingForm(listing),
+                                  icon: const Icon(Icons.edit_outlined),
+                                  label: const Text('Edit'),
+                                ),
+                                TextButton.icon(
+                                  key: Key('delete-listing-${listing.id}'),
+                                  onPressed: () => _confirmDelete(listing),
+                                  icon: const Icon(Icons.delete_outline),
+                                  label: const Text('Hapus'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },

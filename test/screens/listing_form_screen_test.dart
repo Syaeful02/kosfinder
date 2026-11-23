@@ -8,7 +8,9 @@ import 'package:kostfinder/screens/owner/listing_form_screen.dart';
 
 class FakeCreateListingRepository extends ListingRepository {
   int createCallCount = 0;
+  int updateCallCount = 0;
   Map<String, Object>? lastCreatedValues;
+  Listing? lastUpdatedListing;
 
   @override
   Future<List<Listing>> fetchOwnerListings() async => [];
@@ -44,9 +46,19 @@ class FakeCreateListingRepository extends ListingRepository {
       updatedAt: DateTime.utc(2026),
     );
   }
+
+  @override
+  Future<Listing> updateListing(Listing listing) async {
+    updateCallCount++;
+    lastUpdatedListing = listing;
+    return listing;
+  }
 }
 
-Widget createTestApp(FakeCreateListingRepository repository) {
+Widget createTestApp(
+  FakeCreateListingRepository repository, {
+  Listing? listing,
+}) {
   return ChangeNotifierProvider(
     create: (_) => OwnerListingProvider(repository: repository),
     child: MaterialApp(
@@ -57,7 +69,7 @@ Widget createTestApp(FakeCreateListingRepository repository) {
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => const ListingFormScreen(),
+                    builder: (_) => ListingFormScreen(listing: listing),
                   ),
                 );
               },
@@ -149,6 +161,49 @@ void main() {
         200,
       );
       expect(repository.lastCreatedValues!['whatsappNumber'], '081234567890');
+      expect(find.text('Buka Form'), findsOneWidget);
+    });
+
+    testWidgets('prefills listing data and submits update in edit mode', (
+      tester,
+    ) async {
+      final repository = FakeCreateListingRepository();
+      final listing = Listing(
+        id: 'listing-id',
+        ownerId: 'owner-id',
+        name: 'Kos Lama',
+        pricePerMonth: 800000,
+        type: 'Putra',
+        address: 'Jl. Udayana',
+        facilities: 'WiFi',
+        whatsappNumber: '081234567890',
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      );
+      await tester.pumpWidget(createTestApp(repository, listing: listing));
+      await openForm(tester);
+
+      expect(find.text('Edit Kos'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const Key('listing-name')))
+            .controller
+            ?.text,
+        'Kos Lama',
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('listing-name')),
+        'Kos Diperbarui',
+      );
+      await tester.ensureVisible(find.text('Simpan Perubahan'));
+      await tester.tap(find.text('Simpan Perubahan'));
+      await tester.pumpAndSettle();
+
+      expect(repository.createCallCount, 0);
+      expect(repository.updateCallCount, 1);
+      expect(repository.lastUpdatedListing?.id, 'listing-id');
+      expect(repository.lastUpdatedListing?.name, 'Kos Diperbarui');
       expect(find.text('Buka Form'), findsOneWidget);
     });
   });

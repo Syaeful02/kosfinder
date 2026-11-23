@@ -61,4 +61,38 @@ class OwnerListingProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<bool> updateListing(Listing listing) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _repository.updateListing(listing);
+      _ownerListings = await _repository.fetchOwnerListings();
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteListing(Listing listing) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _repository.deleteListing(listing);
+      _ownerListings = await _repository.fetchOwnerListings();
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

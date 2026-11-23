@@ -331,5 +331,64 @@ void main() {
       expect(payload['whatsapp_number'], '081234567890');
       await client.dispose();
     });
+
+    test('updateListing() updates only the row matching listing id', () async {
+      http.Request? capturedRequest;
+      final mockHttpClient = MockClient((request) async {
+        capturedRequest = request;
+        return http.Response(
+          jsonEncode(sampleListingJson1),
+          200,
+          request: request,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+      final client = SupabaseClient(
+        supabaseUrl,
+        supabaseKey,
+        httpClient: mockHttpClient,
+      );
+      final repository = ListingRepository(client: client);
+
+      final result = await repository.updateListing(
+        Listing.fromJson(sampleListingJson1).copyWith(name: 'Kos Baru'),
+      );
+
+      final payload = jsonDecode(capturedRequest!.body) as Map<String, dynamic>;
+      expect(result.id, 'kos-uuid-1');
+      expect(capturedRequest!.method, 'PATCH');
+      expect(capturedRequest!.url.queryParameters['id'], 'eq.kos-uuid-1');
+      expect(
+        capturedRequest!.url.queryParameters.containsKey('owner_id'),
+        isFalse,
+      );
+      expect(payload['name'], 'Kos Baru');
+      expect(payload.containsKey('owner_id'), isFalse);
+      await client.dispose();
+    });
+
+    test('deleteListing() deletes only the row matching listing id', () async {
+      http.Request? capturedRequest;
+      final mockHttpClient = MockClient((request) async {
+        capturedRequest = request;
+        return http.Response('', 204, request: request);
+      });
+      final client = SupabaseClient(
+        supabaseUrl,
+        supabaseKey,
+        httpClient: mockHttpClient,
+      );
+      final repository = ListingRepository(client: client);
+
+      await repository.deleteListing(Listing.fromJson(sampleListingJson1));
+
+      expect(capturedRequest!.method, 'DELETE');
+      expect(capturedRequest!.url.queryParameters['id'], 'eq.kos-uuid-1');
+      expect(
+        capturedRequest!.url.queryParameters.containsKey('owner_id'),
+        isFalse,
+      );
+      await client.dispose();
+    });
   });
 }

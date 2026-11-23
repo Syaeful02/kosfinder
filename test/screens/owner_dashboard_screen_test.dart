@@ -11,8 +11,7 @@ import 'package:kostfinder/screens/owner/listing_form_screen.dart';
 import 'package:kostfinder/screens/owner/owner_dashboard_screen.dart';
 
 class FakeOwnerDashboardRepository extends ListingRepository {
-  @override
-  Future<List<Listing>> fetchOwnerListings() async => [
+  final List<Listing> listings = [
     Listing(
       id: 'listing-id',
       ownerId: 'owner-id',
@@ -26,6 +25,15 @@ class FakeOwnerDashboardRepository extends ListingRepository {
       updatedAt: DateTime.utc(2026),
     ),
   ];
+
+  @override
+  Future<List<Listing>> fetchOwnerListings() async =>
+      List<Listing>.from(listings);
+
+  @override
+  Future<void> deleteListing(Listing listing) async {
+    listings.removeWhere((item) => item.id == listing.id);
+  }
 }
 
 class FakeDashboardAuthRepository extends AuthRepository {
@@ -68,5 +76,55 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ListingFormScreen), findsOneWidget);
+  });
+
+  testWidgets('edit opens a prefilled form and delete removes the listing', (
+    tester,
+  ) async {
+    final repository = FakeOwnerDashboardRepository();
+    final ownerListingProvider = OwnerListingProvider(repository: repository);
+    final authProvider = AuthProvider(
+      repository: FakeDashboardAuthRepository(),
+    );
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<OwnerListingProvider>.value(
+            value: ownerListingProvider,
+          ),
+          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+        ],
+        child: const MaterialApp(home: OwnerDashboardScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('edit-listing-listing-id')));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit Kos'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const Key('listing-name')))
+          .controller
+          ?.text,
+      'Kos Udayana',
+    );
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('delete-listing-listing-id')));
+    await tester.pumpAndSettle();
+    expect(find.text('Kos "Kos Udayana" akan dihapus.'), findsOneWidget);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('Hapus'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Kos Udayana'), findsNothing);
+    expect(find.text('Belum ada kos yang ditambahkan'), findsOneWidget);
   });
 }

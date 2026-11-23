@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:kostfinder/models/listing_model.dart';
 import 'package:kostfinder/providers/owner_listing_provider.dart';
 
 class ListingFormScreen extends StatefulWidget {
-  const ListingFormScreen({super.key});
+  final Listing? listing;
+
+  const ListingFormScreen({super.key, this.listing});
 
   @override
   State<ListingFormScreen> createState() => _ListingFormScreenState();
@@ -27,6 +30,20 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
     _facilitiesController.dispose();
     _whatsappController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final listing = widget.listing;
+    if (listing != null) {
+      _nameController.text = listing.name;
+      _priceController.text = listing.pricePerMonth.toString();
+      _addressController.text = listing.address;
+      _facilitiesController.text = listing.facilities;
+      _whatsappController.text = listing.whatsappNumber;
+      _type = listing.type;
+    }
   }
 
   String? _requiredText(String? value, String label) {
@@ -60,14 +77,32 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await context.read<OwnerListingProvider>().createListing(
-      name: _nameController.text.trim(),
-      pricePerMonth: int.parse(_priceController.text),
-      type: _type!,
-      address: _addressController.text.trim(),
-      facilities: _facilitiesController.text.trim(),
-      whatsappNumber: _whatsappController.text,
-    );
+    final name = _nameController.text.trim();
+    final pricePerMonth = int.parse(_priceController.text);
+    final type = _type!;
+    final address = _addressController.text.trim();
+    final facilities = _facilitiesController.text.trim();
+    final whatsappNumber = _whatsappController.text;
+    final provider = context.read<OwnerListingProvider>();
+    final success = widget.listing == null
+        ? await provider.createListing(
+            name: name,
+            pricePerMonth: pricePerMonth,
+            type: type,
+            address: address,
+            facilities: facilities,
+            whatsappNumber: whatsappNumber,
+          )
+        : await provider.updateListing(
+            widget.listing!.copyWith(
+              name: name,
+              pricePerMonth: pricePerMonth,
+              type: type,
+              address: address,
+              facilities: facilities,
+              whatsappNumber: whatsappNumber,
+            ),
+          );
     if (!mounted) return;
     if (success) {
       Navigator.of(context).pop();
@@ -76,8 +111,9 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.listing != null;
     return Scaffold(
-      appBar: AppBar(title: const Text('Tambah Kos Baru')),
+      appBar: AppBar(title: Text(isEditing ? 'Edit Kos' : 'Tambah Kos Baru')),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -165,7 +201,7 @@ class _ListingFormScreenState extends State<ListingFormScreen> {
                 onPressed: provider.isLoading ? null : _submit,
                 child: provider.isLoading
                     ? const CircularProgressIndicator()
-                    : const Text('Simpan Kos'),
+                    : Text(isEditing ? 'Simpan Perubahan' : 'Simpan Kos'),
               ),
             ),
           ],
