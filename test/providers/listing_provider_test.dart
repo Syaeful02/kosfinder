@@ -8,6 +8,9 @@ class FakeListingRepository extends ListingRepository {
   Exception? errorToThrow;
   Listing? fakeListingById;
   String? lastSearchQuery;
+  int? lastMinPrice;
+  int? lastMaxPrice;
+  int fetchAllCallCount = 0;
 
   FakeListingRepository({
     this.fakeListings = const [],
@@ -16,18 +19,26 @@ class FakeListingRepository extends ListingRepository {
   });
 
   @override
-  Future<List<Listing>> fetchAll({String searchQuery = ''}) async {
+  Future<List<Listing>> fetchAll({
+    String searchQuery = '',
+    int? minPrice,
+    int? maxPrice,
+  }) async {
+    fetchAllCallCount++;
     lastSearchQuery = searchQuery;
+    lastMinPrice = minPrice;
+    lastMaxPrice = maxPrice;
     if (errorToThrow != null) {
       throw errorToThrow!;
     }
-    if (searchQuery.trim().isEmpty) return fakeListings;
-    // Simulasi filter case-insensitive pada nama / alamat
     final q = searchQuery.trim().toLowerCase();
     return fakeListings
         .where((l) =>
-            l.name.toLowerCase().contains(q) ||
-            l.address.toLowerCase().contains(q))
+            (q.isEmpty ||
+                l.name.toLowerCase().contains(q) ||
+                l.address.toLowerCase().contains(q)) &&
+            (minPrice == null || l.pricePerMonth >= minPrice) &&
+            (maxPrice == null || l.pricePerMonth <= maxPrice))
         .toList();
   }
 
@@ -80,6 +91,7 @@ void main() {
       expect(provider.hasError, isFalse);
       expect(provider.isEmpty, isTrue);
       expect(provider.searchQuery, '');
+      expect(provider.maxPrice, isNull);
     });
 
     test('fetchListings() success should update listings and notify listeners', () async {
@@ -192,6 +204,38 @@ void main() {
 
       expect(provider.searchQuery, '');
       expect(repository.lastSearchQuery, '');
+      expect(provider.listings.length, 2);
+    });
+
+    test('setPriceFilter() should update maxPrice and refetch with active search', () async {
+      final repository = FakeListingRepository(fakeListings: [listing1, listing2]);
+      final provider = ListingProvider(repository: repository);
+      await provider.setSearchQuery('Kos');
+      final callsBeforeFilter = repository.fetchAllCallCount;
+
+      await provider.setPriceFilter(750000);
+
+      expect(provider.maxPrice, 750000);
+      expect(repository.lastMaxPrice, 750000);
+      expect(repository.lastSearchQuery, 'Kos');
+      expect(repository.fetchAllCallCount, callsBeforeFilter + 1);
+      expect(provider.listings.map((listing) => listing.id), ['kos-uuid-2']);
+    });
+
+    test('clearFilters() should reset search and price filters and reload listings', () async {
+      final repository = FakeListingRepository(fakeListings: [listing1, listing2]);
+      final provider = ListingProvider(repository: repository);
+      await provider.setSearchQuery('Asri');
+      await provider.setPriceFilter(750000);
+
+      await provider.clearFilters();
+
+      expect(provider.searchQuery, '');
+      expect(provider.minPrice, isNull);
+      expect(provider.maxPrice, isNull);
+      expect(repository.lastSearchQuery, '');
+      expect(repository.lastMinPrice, isNull);
+      expect(repository.lastMaxPrice, isNull);
       expect(provider.listings.length, 2);
     });
 

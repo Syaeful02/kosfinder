@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -14,7 +15,11 @@ class MockListingRepository extends ListingRepository {
   MockListingRepository({required this.onFetchAll});
 
   @override
-  Future<List<Listing>> fetchAll({String searchQuery = ''}) => onFetchAll();
+  Future<List<Listing>> fetchAll({
+    String searchQuery = '',
+    int? minPrice,
+    int? maxPrice,
+  }) => onFetchAll();
 }
 
 void main() {

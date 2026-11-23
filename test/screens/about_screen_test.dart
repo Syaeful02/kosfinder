@@ -9,8 +9,11 @@ import 'package:kostfinder/screens/home_screen.dart';
 
 class MockListingRepo extends ListingRepository {
   @override
-  @override
-  Future<List<Listing>> fetchAll({String searchQuery = ''}) async => [];
+  Future<List<Listing>> fetchAll({
+    String searchQuery = '',
+    int? minPrice,
+    int? maxPrice,
+  }) async => [];
 }
 
 void main() {

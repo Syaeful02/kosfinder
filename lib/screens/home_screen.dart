@@ -6,6 +6,7 @@ import 'package:kostfinder/screens/about_screen.dart';
 import 'package:kostfinder/screens/auth/login_screen.dart';
 import 'package:kostfinder/screens/listing_detail_screen.dart';
 import 'package:kostfinder/screens/owner/owner_dashboard_screen.dart';
+import 'package:kostfinder/widgets/filter_modal.dart';
 import 'package:kostfinder/widgets/listing_card.dart';
 
 /// Halaman utama (Beranda) publik untuk menampilkan daftar kos.
@@ -79,43 +80,106 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          // Search Bar
+          // Search Bar + Filter Button
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            child: TextField(
-              controller: _searchController,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                hintText: 'Cari nama kos atau lokasi...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: Consumer<ListingProvider>(
-                  builder: (context, provider, _) {
-                    if (provider.searchQuery.isEmpty) return const SizedBox.shrink();
-                    return IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: 'Hapus pencarian',
-                      onPressed: () {
-                        _searchController.clear();
+            child: Row(
+              children: [
+                // Search TextField
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: 'Cari nama kos atau lokasi...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: Consumer<ListingProvider>(
+                        builder: (context, provider, _) {
+                          if (provider.searchQuery.isEmpty) return const SizedBox.shrink();
+                          return IconButton(
+                            icon: const Icon(Icons.close),
+                            tooltip: 'Hapus pencarian',
+                            onPressed: () {
+                              _searchController.clear();
+                              context.read<ListingProvider>().clearSearch();
+                            },
+                          );
+                        },
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      filled: true,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                    ),
+                    onSubmitted: (value) {
+                      context.read<ListingProvider>().setSearchQuery(value);
+                    },
+                    onChanged: (value) {
+                      if (value.isEmpty) {
                         context.read<ListingProvider>().clearSearch();
-                      },
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Tombol Filter dengan badge indikator aktif
+                Consumer<ListingProvider>(
+                  builder: (context, provider, _) {
+                    final isActive = provider.hasPriceFilter;
+                    return Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.filter_list,
+                            color: isActive
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                          ),
+                          tooltip: 'Filter Harga',
+                          style: IconButton.styleFrom(
+                            backgroundColor: isActive
+                                ? Theme.of(context).colorScheme.primaryContainer
+                                : null,
+                          ),
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.vertical(
+                                  top: Radius.circular(16),
+                                ),
+                              ),
+                              builder: (_) => ChangeNotifierProvider<ListingProvider>.value(
+                                value: provider,
+                                child: const FilterModal(),
+                              ),
+                            );
+                          },
+                        ),
+                        // Badge merah kecil saat filter aktif
+                        if (isActive)
+                          Positioned(
+                            top: 6,
+                            right: 6,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.error,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
                     );
                   },
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-              ),
-              onSubmitted: (value) {
-                context.read<ListingProvider>().setSearchQuery(value);
-              },
-              onChanged: (value) {
-                if (value.isEmpty) {
-                  context.read<ListingProvider>().clearSearch();
-                }
-              },
+              ],
             ),
           ),
 

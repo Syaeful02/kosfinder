@@ -24,14 +24,27 @@ class ListingRepository {
   ///
   /// Jika [searchQuery] diberikan (tidak kosong), query akan menyaring kos
   /// berdasarkan nama atau alamat yang cocok (pencarian `ilike` case-insensitive).
-  Future<List<Listing>> fetchAll({String searchQuery = ''}) async {
-    var query = _supabaseClient
-        .from('listings')
-        .select();
+  ///
+  /// Jika [minPrice] diberikan, hanya kos dengan harga >= [minPrice] yang dikembalikan.
+  /// Jika [maxPrice] diberikan, hanya kos dengan harga <= [maxPrice] yang dikembalikan.
+  Future<List<Listing>> fetchAll({
+    String searchQuery = '',
+    int? minPrice,
+    int? maxPrice,
+  }) async {
+    var query = _supabaseClient.from('listings').select();
 
     if (searchQuery.trim().isNotEmpty) {
       final q = searchQuery.trim();
       query = query.or('name.ilike.%$q%,address.ilike.%$q%');
+    }
+
+    if (minPrice != null) {
+      query = query.gte('price_per_month', minPrice);
+    }
+
+    if (maxPrice != null) {
+      query = query.lte('price_per_month', maxPrice);
     }
 
     final response = await query.order('created_at', ascending: false);

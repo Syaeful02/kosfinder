@@ -1,10 +1,12 @@
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 // ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
 // ignore: depend_on_referenced_packages
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:kostfinder/models/listing_model.dart';
 import 'package:kostfinder/repositories/listing_repository.dart';
 
 void main() {
@@ -40,37 +42,47 @@ void main() {
       'updated_at': '2026-11-22T08:00:00.000Z',
     };
 
-    test('fetchAll() should return list of listings ordered by created_at DESC', () async {
-      Uri? capturedUri;
+    test(
+      'fetchAll() should return list of listings ordered by created_at DESC',
+      () async {
+        Uri? capturedUri;
 
-      final mockHttpClient = MockClient((request) async {
-        capturedUri = request.url;
-        if (request.url.path.contains('listings')) {
-          return http.Response(
-            jsonEncode([sampleListingJson1, sampleListingJson2]),
-            200,
-            request: request,
-            headers: {'content-type': 'application/json; charset=utf-8'},
-          );
-        }
-        return http.Response('[]', 200, request: request);
-      });
+        final mockHttpClient = MockClient((request) async {
+          capturedUri = request.url;
+          if (request.url.path.contains('listings')) {
+            return http.Response(
+              jsonEncode([sampleListingJson1, sampleListingJson2]),
+              200,
+              request: request,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            );
+          }
+          return http.Response('[]', 200, request: request);
+        });
 
-      final client = SupabaseClient(supabaseUrl, supabaseKey, httpClient: mockHttpClient);
-      final repository = ListingRepository(client: client);
+        final client = SupabaseClient(
+          supabaseUrl,
+          supabaseKey,
+          httpClient: mockHttpClient,
+        );
+        final repository = ListingRepository(client: client);
 
-      final result = await repository.fetchAll();
+        final result = await repository.fetchAll();
 
-      expect(result.length, 2);
-      expect(result[0].id, 'kos-uuid-1');
-      expect(result[0].name, 'Kos Singaraja Asri');
-      expect(result[1].id, 'kos-uuid-2');
-      expect(result[1].name, 'Kos Harmony Singaraja');
+        expect(result.length, 2);
+        expect(result[0].id, 'kos-uuid-1');
+        expect(result[0].name, 'Kos Singaraja Asri');
+        expect(result[1].id, 'kos-uuid-2');
+        expect(result[1].name, 'Kos Harmony Singaraja');
 
-      // Verifikasi bahwa Postgrest mengirimkan query parameter order created_at DESC
-      expect(capturedUri, isNotNull);
-      expect(capturedUri!.queryParameters['order'], contains('created_at.desc'));
-    });
+        // Verifikasi bahwa Postgrest mengirimkan query parameter order created_at DESC
+        expect(capturedUri, isNotNull);
+        expect(
+          capturedUri!.queryParameters['order'],
+          contains('created_at.desc'),
+        );
+      },
+    );
 
     test('fetchAll() should return empty list when no data exists', () async {
       final mockHttpClient = MockClient((request) async {
@@ -82,7 +94,11 @@ void main() {
         );
       });
 
-      final client = SupabaseClient(supabaseUrl, supabaseKey, httpClient: mockHttpClient);
+      final client = SupabaseClient(
+        supabaseUrl,
+        supabaseKey,
+        httpClient: mockHttpClient,
+      );
       final repository = ListingRepository(client: client);
 
       final result = await repository.fetchAll();
@@ -90,52 +106,66 @@ void main() {
       expect(result, isEmpty);
     });
 
-    test('fetchAll() should throw PostgrestException when database error occurs', () async {
-      final mockHttpClient = MockClient((request) async {
-        return http.Response(
-          jsonEncode({'message': 'Internal Server Error', 'code': '500'}),
-          500,
-          request: request,
-          headers: {'content-type': 'application/json; charset=utf-8'},
-        );
-      });
-
-      final client = SupabaseClient(supabaseUrl, supabaseKey, httpClient: mockHttpClient);
-      final repository = ListingRepository(client: client);
-
-      expect(() => repository.fetchAll(), throwsA(isA<PostgrestException>()));
-    });
-
-    test('fetchById() should return listing matching the requested id', () async {
-      Uri? capturedUri;
-
-      final mockHttpClient = MockClient((request) async {
-        capturedUri = request.url;
-        if (request.url.queryParameters['id'] == 'eq.kos-uuid-1') {
+    test(
+      'fetchAll() should throw PostgrestException when database error occurs',
+      () async {
+        final mockHttpClient = MockClient((request) async {
           return http.Response(
-            jsonEncode(sampleListingJson1),
-            200,
+            jsonEncode({'message': 'Internal Server Error', 'code': '500'}),
+            500,
             request: request,
             headers: {'content-type': 'application/json; charset=utf-8'},
           );
-        }
-        return http.Response('', 200, request: request);
-      });
+        });
 
-      final client = SupabaseClient(supabaseUrl, supabaseKey, httpClient: mockHttpClient);
-      final repository = ListingRepository(client: client);
+        final client = SupabaseClient(
+          supabaseUrl,
+          supabaseKey,
+          httpClient: mockHttpClient,
+        );
+        final repository = ListingRepository(client: client);
 
-      final result = await repository.fetchById('kos-uuid-1');
+        expect(() => repository.fetchAll(), throwsA(isA<PostgrestException>()));
+      },
+    );
 
-      expect(result, isNotNull);
-      expect(result!.id, 'kos-uuid-1');
-      expect(result.name, 'Kos Singaraja Asri');
-      expect(result.pricePerMonth, 850000);
+    test(
+      'fetchById() should return listing matching the requested id',
+      () async {
+        Uri? capturedUri;
 
-      // Verifikasi query parameter id filter
-      expect(capturedUri, isNotNull);
-      expect(capturedUri!.queryParameters['id'], 'eq.kos-uuid-1');
-    });
+        final mockHttpClient = MockClient((request) async {
+          capturedUri = request.url;
+          if (request.url.queryParameters['id'] == 'eq.kos-uuid-1') {
+            return http.Response(
+              jsonEncode(sampleListingJson1),
+              200,
+              request: request,
+              headers: {'content-type': 'application/json; charset=utf-8'},
+            );
+          }
+          return http.Response('', 200, request: request);
+        });
+
+        final client = SupabaseClient(
+          supabaseUrl,
+          supabaseKey,
+          httpClient: mockHttpClient,
+        );
+        final repository = ListingRepository(client: client);
+
+        final result = await repository.fetchById('kos-uuid-1');
+
+        expect(result, isNotNull);
+        expect(result!.id, 'kos-uuid-1');
+        expect(result.name, 'Kos Singaraja Asri');
+        expect(result.pricePerMonth, 850000);
+
+        // Verifikasi query parameter id filter
+        expect(capturedUri, isNotNull);
+        expect(capturedUri!.queryParameters['id'], 'eq.kos-uuid-1');
+      },
+    );
 
     test('fetchById() should return null when listing is not found', () async {
       final mockHttpClient = MockClient((request) async {
@@ -147,7 +177,11 @@ void main() {
         );
       });
 
-      final client = SupabaseClient(supabaseUrl, supabaseKey, httpClient: mockHttpClient);
+      final client = SupabaseClient(
+        supabaseUrl,
+        supabaseKey,
+        httpClient: mockHttpClient,
+      );
       final repository = ListingRepository(client: client);
 
       final result = await repository.fetchById('non-existent-id');
@@ -155,21 +189,34 @@ void main() {
       expect(result, isNull);
     });
 
-    test('fetchById() should throw PostgrestException when database error occurs', () async {
-      final mockHttpClient = MockClient((request) async {
-        return http.Response(
-          jsonEncode({'message': 'Database connection failed', 'code': 'PGRST'}),
-          500,
-          request: request,
-          headers: {'content-type': 'application/json; charset=utf-8'},
+    test(
+      'fetchById() should throw PostgrestException when database error occurs',
+      () async {
+        final mockHttpClient = MockClient((request) async {
+          return http.Response(
+            jsonEncode({
+              'message': 'Database connection failed',
+              'code': 'PGRST',
+            }),
+            500,
+            request: request,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        });
+
+        final client = SupabaseClient(
+          supabaseUrl,
+          supabaseKey,
+          httpClient: mockHttpClient,
         );
-      });
+        final repository = ListingRepository(client: client);
 
-      final client = SupabaseClient(supabaseUrl, supabaseKey, httpClient: mockHttpClient);
-      final repository = ListingRepository(client: client);
-
-      expect(() => repository.fetchById('kos-uuid-1'), throwsA(isA<PostgrestException>()));
-    });
+        expect(
+          () => repository.fetchById('kos-uuid-1'),
+          throwsA(isA<PostgrestException>()),
+        );
+      },
+    );
 
     test('fetchAll() should throw informative exception when client is not initialized', () async {
       final repository = ListingRepository();
@@ -177,62 +224,140 @@ void main() {
         () => repository.fetchAll(),
         throwsA(
           predicate<Exception>(
-            (e) => e.toString().contains('Supabase belum terkonfigurasi atau gagal diinisialisasi'),
+            (e) => e.toString().contains(
+              'Supabase belum terkonfigurasi atau gagal diinisialisasi',
+            ),
           ),
         ),
       );
     });
 
-    test('fetchAll() with searchQuery should include or filter in the request URL', () async {
-      Uri? capturedUri;
+    test(
+      'fetchAll() with searchQuery should include or filter in the request URL',
+      () async {
+        Uri? capturedUri;
 
-      final mockHttpClient = MockClient((request) async {
-        capturedUri = request.url;
-        return http.Response(
-          jsonEncode([sampleListingJson1]),
-          200,
-          request: request,
-          headers: {'content-type': 'application/json; charset=utf-8'},
+        final mockHttpClient = MockClient((request) async {
+          capturedUri = request.url;
+          return http.Response(
+            jsonEncode([sampleListingJson1]),
+            200,
+            request: request,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        });
+
+        final client = SupabaseClient(
+          supabaseUrl,
+          supabaseKey,
+          httpClient: mockHttpClient,
         );
-      });
+        final repository = ListingRepository(client: client);
 
-      final client = SupabaseClient(supabaseUrl, supabaseKey, httpClient: mockHttpClient);
-      final repository = ListingRepository(client: client);
+        final result = await repository.fetchAll(searchQuery: 'Singaraja');
 
-      final result = await repository.fetchAll(searchQuery: 'Singaraja');
+        expect(result.length, 1);
+        expect(capturedUri, isNotNull);
+        // Verifikasi bahwa filter OR ilike dikirim sebagai parameter `or`
+        final orParam = capturedUri!.queryParameters['or'];
+        expect(orParam, isNotNull);
+        expect(orParam, contains('ilike'));
+        expect(orParam, contains('Singaraja'));
+      },
+    );
 
-      expect(result.length, 1);
-      expect(capturedUri, isNotNull);
-      // Verifikasi bahwa filter OR ilike dikirim sebagai parameter `or`
-      final orParam = capturedUri!.queryParameters['or'];
-      expect(orParam, isNotNull);
-      expect(orParam, contains('ilike'));
-      expect(orParam, contains('Singaraja'));
-    });
+    test(
+      'fetchAll() with empty searchQuery should not include or filter',
+      () async {
+        Uri? capturedUri;
 
-    test('fetchAll() with empty searchQuery should not include or filter', () async {
-      Uri? capturedUri;
+        final mockHttpClient = MockClient((request) async {
+          capturedUri = request.url;
+          return http.Response(
+            jsonEncode([sampleListingJson1, sampleListingJson2]),
+            200,
+            request: request,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        });
 
-      final mockHttpClient = MockClient((request) async {
-        capturedUri = request.url;
-        return http.Response(
-          jsonEncode([sampleListingJson1, sampleListingJson2]),
-          200,
-          request: request,
-          headers: {'content-type': 'application/json; charset=utf-8'},
+        final client = SupabaseClient(
+          supabaseUrl,
+          supabaseKey,
+          httpClient: mockHttpClient,
         );
-      });
+        final repository = ListingRepository(client: client);
 
-      final client = SupabaseClient(supabaseUrl, supabaseKey, httpClient: mockHttpClient);
-      final repository = ListingRepository(client: client);
+        final result = await repository.fetchAll();
 
-      final result = await repository.fetchAll();
+        expect(result.length, 2);
+        expect(capturedUri, isNotNull);
+        // Tanpa searchQuery tidak ada parameter `or`
+        expect(capturedUri!.queryParameters.containsKey('or'), isFalse);
+      },
+    );
 
-      expect(result.length, 2);
-      expect(capturedUri, isNotNull);
-      // Tanpa searchQuery tidak ada parameter `or`
-      expect(capturedUri!.queryParameters.containsKey('or'), isFalse);
-    });
+    test(
+      'fetchAll() with maxPrice should include lte and preserve search filter',
+      () async {
+        Uri? capturedUri;
+
+        final mockHttpClient = MockClient((request) async {
+          capturedUri = request.url;
+          return http.Response(
+            jsonEncode([sampleListingJson1]),
+            200,
+            request: request,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        });
+
+        final client = SupabaseClient(
+          supabaseUrl,
+          supabaseKey,
+          httpClient: mockHttpClient,
+        );
+        final repository = ListingRepository(client: client);
+
+        await repository.fetchAll(searchQuery: 'Singaraja', maxPrice: 900000);
+
+        expect(capturedUri, isNotNull);
+        expect(capturedUri!.queryParameters['price_per_month'], 'lte.900000');
+        expect(capturedUri!.queryParameters['or'], contains('Singaraja'));
+      },
+    );
+
+    test(
+      'fetchAll() without maxPrice should not include price filter',
+      () async {
+        Uri? capturedUri;
+
+        final mockHttpClient = MockClient((request) async {
+          capturedUri = request.url;
+          return http.Response(
+            jsonEncode([sampleListingJson1]),
+            200,
+            request: request,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        });
+
+        final client = SupabaseClient(
+          supabaseUrl,
+          supabaseKey,
+          httpClient: mockHttpClient,
+        );
+        final repository = ListingRepository(client: client);
+
+        await repository.fetchAll();
+
+        expect(capturedUri, isNotNull);
+        expect(
+          capturedUri!.queryParameters.containsKey('price_per_month'),
+          isFalse,
+        );
+      },
+    );
 
     test(
       'fetchOwnerListings() filters by the authenticated owner id',

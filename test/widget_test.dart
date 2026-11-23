@@ -13,7 +13,11 @@ class DelayedListingRepository extends ListingRepository {
   DelayedListingRepository(this.future);
 
   @override
-  Future<List<Listing>> fetchAll({String searchQuery = ''}) => future;
+  Future<List<Listing>> fetchAll({
+    String searchQuery = '',
+    int? minPrice,
+    int? maxPrice,
+  }) => future;
 }
 
 void main() {
