@@ -125,6 +125,14 @@ class ListingRepository {
     await _supabaseClient.from('listings').delete().eq('id', listing.id);
   }
 
+  /// Mengubah ketersediaan kos berdasarkan ID; otorisasi tetap ditegakkan RLS.
+  Future<void> updateAvailability(String id, bool isAvailable) async {
+    await _supabaseClient
+        .from('listings')
+        .update({'is_available': isAvailable})
+        .eq('id', id);
+  }
+
   String get _currentOwnerId {
     final user = _supabaseClient.auth.currentUser;
     if (user == null) {

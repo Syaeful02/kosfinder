@@ -128,6 +128,21 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                             ),
                             isThreeLine: true,
                           ),
+                          SwitchListTile(
+                            key: Key('availability-switch-${listing.id}'),
+                            title: Text(
+                              listing.isAvailable ? 'Tersedia' : 'Penuh',
+                            ),
+                            value: listing.isAvailable,
+                            onChanged: provider.isLoading
+                                ? null
+                                : (value) {
+                                    provider.updateAvailability(
+                                      listing.id,
+                                      value,
+                                    );
+                                  },
+                          ),
                           Padding(
                             padding: const EdgeInsets.only(
                               left: 16,

@@ -34,6 +34,14 @@ class FakeOwnerDashboardRepository extends ListingRepository {
   Future<void> deleteListing(Listing listing) async {
     listings.removeWhere((item) => item.id == listing.id);
   }
+
+  @override
+  Future<void> updateAvailability(String id, bool isAvailable) async {
+    final index = listings.indexWhere((item) => item.id == id);
+    if (index >= 0) {
+      listings[index] = listings[index].copyWith(isAvailable: isAvailable);
+    }
+  }
 }
 
 class FakeDashboardAuthRepository extends AuthRepository {
@@ -126,5 +134,36 @@ void main() {
 
     expect(find.text('Kos Udayana'), findsNothing);
     expect(find.text('Belum ada kos yang ditambahkan'), findsOneWidget);
+  });
+
+  testWidgets('availability switch updates the owner listing status', (
+    tester,
+  ) async {
+    final ownerListingProvider = OwnerListingProvider(
+      repository: FakeOwnerDashboardRepository(),
+    );
+    final authProvider = AuthProvider(
+      repository: FakeDashboardAuthRepository(),
+    );
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<OwnerListingProvider>.value(
+            value: ownerListingProvider,
+          ),
+          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+        ],
+        child: const MaterialApp(home: OwnerDashboardScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tersedia'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('availability-switch-listing-id')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Penuh'), findsOneWidget);
+    expect(ownerListingProvider.ownerListings.single.isAvailable, isFalse);
   });
 }

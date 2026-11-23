@@ -390,5 +390,27 @@ void main() {
       );
       await client.dispose();
     });
+
+    test('updateAvailability() updates status using listing id', () async {
+      http.Request? capturedRequest;
+      final mockHttpClient = MockClient((request) async {
+        capturedRequest = request;
+        return http.Response('', 204, request: request);
+      });
+      final client = SupabaseClient(
+        supabaseUrl,
+        supabaseKey,
+        httpClient: mockHttpClient,
+      );
+      final repository = ListingRepository(client: client);
+
+      await repository.updateAvailability('kos-uuid-1', false);
+
+      final payload = jsonDecode(capturedRequest!.body) as Map<String, dynamic>;
+      expect(capturedRequest!.method, 'PATCH');
+      expect(capturedRequest!.url.queryParameters['id'], 'eq.kos-uuid-1');
+      expect(payload, {'is_available': false});
+      await client.dispose();
+    });
   });
 }

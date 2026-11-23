@@ -95,4 +95,26 @@ class OwnerListingProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Future<bool> updateAvailability(String id, bool isAvailable) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _repository.updateAvailability(id, isAvailable);
+      final index = _ownerListings.indexWhere((listing) => listing.id == id);
+      if (index >= 0) {
+        _ownerListings[index] = _ownerListings[index].copyWith(
+          isAvailable: isAvailable,
+        );
+      }
+      return true;
+    } catch (error) {
+      _errorMessage = error.toString();
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

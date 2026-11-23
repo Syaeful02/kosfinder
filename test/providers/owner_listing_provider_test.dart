@@ -8,6 +8,8 @@ class FakeOwnerListingRepository extends ListingRepository {
   int fetchCalls = 0;
   int updateCalls = 0;
   int deleteCalls = 0;
+  String? availabilityListingId;
+  bool? availabilityValue;
 
   FakeOwnerListingRepository(this.storedListings);
 
@@ -29,6 +31,12 @@ class FakeOwnerListingRepository extends ListingRepository {
   Future<void> deleteListing(Listing listing) async {
     deleteCalls++;
     storedListings.removeWhere((item) => item.id == listing.id);
+  }
+
+  @override
+  Future<void> updateAvailability(String id, bool isAvailable) async {
+    availabilityListingId = id;
+    availabilityValue = isAvailable;
   }
 }
 
@@ -81,4 +89,18 @@ void main() {
       expect(provider.errorMessage, isNull);
     },
   );
+
+  test('updateAvailability persists and updates the listing state', () async {
+    final repository = FakeOwnerListingRepository([listing]);
+    final provider = OwnerListingProvider(repository: repository);
+    await provider.fetchOwnerListings();
+
+    final success = await provider.updateAvailability('listing-id', false);
+
+    expect(success, isTrue);
+    expect(repository.availabilityListingId, 'listing-id');
+    expect(repository.availabilityValue, isFalse);
+    expect(provider.ownerListings.single.isAvailable, isFalse);
+    expect(provider.errorMessage, isNull);
+  });
 }
