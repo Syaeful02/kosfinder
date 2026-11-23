@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:kostfinder/providers/auth_provider.dart';
 import 'package:kostfinder/providers/listing_provider.dart';
 import 'package:kostfinder/screens/about_screen.dart';
+import 'package:kostfinder/screens/auth/login_screen.dart';
 import 'package:kostfinder/screens/listing_detail_screen.dart';
+import 'package:kostfinder/screens/owner/owner_dashboard_screen.dart';
 import 'package:kostfinder/widgets/listing_card.dart';
 
 /// Halaman utama (Beranda) publik untuk menampilkan daftar kos.
@@ -39,6 +42,27 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('KosFinder Singaraja'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          Consumer<AuthProvider?>(
+            builder: (context, authProvider, _) {
+              final isAuthenticated = authProvider?.isAuthenticated ?? false;
+              return IconButton(
+                icon: Icon(
+                  isAuthenticated ? Icons.account_circle : Icons.login,
+                ),
+                tooltip: isAuthenticated ? 'Dashboard Pemilik' : 'Login Pemilik',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => isAuthenticated
+                          ? const OwnerDashboardScreen()
+                          : const LoginScreen(),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.info_outline),
             tooltip: 'Tentang Aplikasi',
