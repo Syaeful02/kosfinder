@@ -56,4 +56,54 @@ class ListingRepository {
 
     return Listing.fromJson(response);
   }
+
+  /// Mengambil kos milik pengguna yang sedang login.
+  Future<List<Listing>> fetchOwnerListings() async {
+    final ownerId = _currentOwnerId;
+    final response = await _supabaseClient
+        .from('listings')
+        .select()
+        .eq('owner_id', ownerId)
+        .order('created_at', ascending: false);
+
+    return (response as List)
+        .map((item) => Listing.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Membuat kos baru untuk pengguna yang sedang login.
+  Future<Listing> createListing({
+    required String name,
+    required int pricePerMonth,
+    required String type,
+    required String address,
+    required String facilities,
+    required String whatsappNumber,
+  }) async {
+    final response = await _supabaseClient
+        .from('listings')
+        .insert({
+          'owner_id': _currentOwnerId,
+          'name': name,
+          'price_per_month': pricePerMonth,
+          'type': type,
+          'address': address,
+          'facilities': facilities,
+          'whatsapp_number': Listing.sanitizeToLocalWhatsAppNumber(
+            whatsappNumber,
+          ),
+        })
+        .select()
+        .single();
+
+    return Listing.fromJson(response);
+  }
+
+  String get _currentOwnerId {
+    final user = _supabaseClient.auth.currentUser;
+    if (user == null) {
+      throw StateError('Login diperlukan untuk mengelola kos.');
+    }
+    return user.id;
+  }
 }

@@ -233,5 +233,103 @@ void main() {
       // Tanpa searchQuery tidak ada parameter `or`
       expect(capturedUri!.queryParameters.containsKey('or'), isFalse);
     });
+
+    test(
+      'fetchOwnerListings() filters by the authenticated owner id',
+      () async {
+        Uri? capturedUri;
+        final mockHttpClient = MockClient((request) async {
+          capturedUri = request.url;
+          return http.Response(
+            jsonEncode([sampleListingJson1]),
+            200,
+            request: request,
+            headers: {'content-type': 'application/json; charset=utf-8'},
+          );
+        });
+        final client = SupabaseClient(
+          supabaseUrl,
+          supabaseKey,
+          authOptions: const AuthClientOptions(
+            authFlowType: AuthFlowType.implicit,
+          ),
+          httpClient: mockHttpClient,
+        );
+        await client.auth.recoverSession(
+          jsonEncode({
+            'access_token': 'eyJhbGciOiJub25lIn0.eyJleHAiOjE5OTk5OTk5OTl9.x',
+            'refresh_token': 'refresh-token',
+            'token_type': 'bearer',
+            'user': {
+              'id': 'owner-uuid-1',
+              'aud': 'authenticated',
+              'role': 'authenticated',
+              'email': 'owner@example.com',
+              'created_at': '2026-11-23T10:00:00.000Z',
+            },
+          }),
+        );
+        final repository = ListingRepository(client: client);
+
+        final result = await repository.fetchOwnerListings();
+
+        expect(result.single.id, 'kos-uuid-1');
+        expect(capturedUri!.queryParameters['owner_id'], 'eq.owner-uuid-1');
+        await client.dispose();
+      },
+    );
+
+    test('createListing() inserts new listing for current owner', () async {
+      http.Request? capturedRequest;
+      final mockHttpClient = MockClient((request) async {
+        capturedRequest = request;
+        return http.Response(
+          jsonEncode(sampleListingJson1),
+          201,
+          request: request,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+      final client = SupabaseClient(
+        supabaseUrl,
+        supabaseKey,
+        authOptions: const AuthClientOptions(
+          authFlowType: AuthFlowType.implicit,
+        ),
+        httpClient: mockHttpClient,
+      );
+      await client.auth.recoverSession(
+        jsonEncode({
+          'access_token': 'eyJhbGciOiJub25lIn0.eyJleHAiOjE5OTk5OTk5OTl9.x',
+          'refresh_token': 'refresh-token',
+          'token_type': 'bearer',
+          'user': {
+            'id': 'owner-uuid-1',
+            'aud': 'authenticated',
+            'role': 'authenticated',
+            'email': 'owner@example.com',
+            'created_at': '2026-11-23T10:00:00.000Z',
+          },
+        }),
+      );
+      final repository = ListingRepository(client: client);
+
+      final result = await repository.createListing(
+        name: 'Kos Singaraja Asri',
+        pricePerMonth: 850000,
+        type: 'Putra',
+        address: 'Jl. Udayana No. 10, Singaraja',
+        facilities: 'WiFi, Kasur, Lemari',
+        whatsappNumber: '6281234567890',
+      );
+
+      final payload = jsonDecode(capturedRequest!.body) as Map<String, dynamic>;
+      expect(result.id, 'kos-uuid-1');
+      expect(capturedRequest!.url.path, '/rest/v1/listings');
+      expect(payload['owner_id'], 'owner-uuid-1');
+      expect(payload['price_per_month'], 850000);
+      expect(payload['whatsapp_number'], '081234567890');
+      await client.dispose();
+    });
   });
 }

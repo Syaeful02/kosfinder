@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:kostfinder/core/config/app_config.dart';
 import 'package:kostfinder/providers/auth_provider.dart';
 import 'package:kostfinder/providers/listing_provider.dart';
+import 'package:kostfinder/providers/owner_listing_provider.dart';
 import 'package:kostfinder/screens/home_screen.dart';
 
 Future<void> main() async {
@@ -26,6 +27,7 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ListingProvider()),
+        ChangeNotifierProvider(create: (_) => OwnerListingProvider()),
       ],
       child: const MyApp(),
     ),
