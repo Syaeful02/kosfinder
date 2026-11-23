@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kostfinder/providers/listing_provider.dart';
+import 'package:kostfinder/screens/about_screen.dart';
 import 'package:kostfinder/screens/listing_detail_screen.dart';
 import 'package:kostfinder/widgets/listing_card.dart';
 
@@ -30,6 +31,20 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('KosFinder Singaraja'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            tooltip: 'Tentang Aplikasi',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AboutScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Consumer<ListingProvider>(
         builder: (context, provider, child) {
