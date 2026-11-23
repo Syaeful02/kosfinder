@@ -7,7 +7,18 @@ class ListingRepository {
 
   ListingRepository({this.client});
 
-  SupabaseClient get _supabaseClient => client ?? Supabase.instance.client;
+  SupabaseClient get _supabaseClient {
+    if (client != null) return client!;
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      throw Exception(
+        'Supabase belum terkonfigurasi atau gagal diinisialisasi. '
+        'Pastikan parameter --dart-define="SUPABASE_URL=..." dan '
+        '--dart-define="SUPABASE_ANON_KEY=..." disertakan dengan benar saat menjalankan aplikasi.',
+      );
+    }
+  }
 
   /// Mengambil seluruh data kos publik, diurutkan secara default berdasarkan `created_at DESC`.
   Future<List<Listing>> fetchAll() async {

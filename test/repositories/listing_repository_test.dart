@@ -170,5 +170,17 @@ void main() {
 
       expect(() => repository.fetchById('kos-uuid-1'), throwsA(isA<PostgrestException>()));
     });
+
+    test('fetchAll() should throw informative exception when client is not initialized', () async {
+      final repository = ListingRepository();
+      expect(
+        () => repository.fetchAll(),
+        throwsA(
+          predicate<Exception>(
+            (e) => e.toString().contains('Supabase belum terkonfigurasi atau gagal diinisialisasi'),
+          ),
+        ),
+      );
+    });
   });
 }
