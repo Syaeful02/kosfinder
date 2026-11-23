@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:kostfinder/providers/listing_provider.dart';
+import 'package:kostfinder/screens/listing_detail_screen.dart';
 import 'package:kostfinder/widgets/listing_card.dart';
 
 /// Halaman utama (Beranda) publik untuk menampilkan daftar kos.
@@ -94,7 +95,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 return ListingCard(
                   listing: listing,
                   onTap: () {
-                    // Navigasi ke ListingDetailScreen (Slice 1 / T06)
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ListingDetailScreen(listing: listing),
+                      ),
+                    );
                   },
                 );
               },

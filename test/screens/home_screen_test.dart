@@ -124,5 +124,22 @@ void main() {
       expect(textWidget.maxLines, 2);
       expect(textWidget.overflow, TextOverflow.ellipsis);
     });
+
+    testWidgets('tapping ListingCard should navigate to ListingDetailScreen', (tester) async {
+      final repository = MockListingRepository(onFetchAll: () async => [sampleListing]);
+      final provider = ListingProvider(repository: repository);
+
+      await tester.pumpWidget(createTestWidget(provider));
+      await tester.pumpAndSettle();
+
+      // Tap kartu kos
+      await tester.tap(find.byType(ListingCard));
+      await tester.pumpAndSettle();
+
+      // Memastikan navigasi berhasil ke ListingDetailScreen
+      expect(find.text('Detail Kos'), findsOneWidget);
+      expect(find.text('Hubungi WhatsApp'), findsOneWidget);
+      expect(find.text('Telepon'), findsOneWidget);
+    });
   });
 }
